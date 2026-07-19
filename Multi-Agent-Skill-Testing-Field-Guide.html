@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A practical, evidence-first field guide to multi-agent skill testing.">
+  <title>Multi-Agent Skill Testing — Field Guide</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f1e9;
+      --surface: #fffdf7;
+      --surface-2: #e9f0ec;
+      --ink: #17211d;
+      --muted: #52605a;
+      --line: #c8d2cd;
+      --accent: #0b6655;
+      --accent-2: #9a3e1f;
+      --accent-soft: #d7eee6;
+      --gold: #f1b941;
+      --good: #17603d;
+      --warn: #8a4b00;
+      --shadow: 0 18px 55px rgba(31, 43, 38, .12);
+      --radius: 18px;
+      --content: 1180px;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #101815;
+      --surface: #17221e;
+      --surface-2: #20312b;
+      --ink: #f5f7f2;
+      --muted: #bbc9c2;
+      --line: #3a5047;
+      --accent: #65d9bd;
+      --accent-2: #ff986f;
+      --accent-soft: #1d493d;
+      --gold: #ffd36d;
+      --good: #76d7a4;
+      --warn: #ffc36a;
+      --shadow: 0 18px 55px rgba(0, 0, 0, .35);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 5%, color-mix(in srgb, var(--accent-soft) 65%, transparent), transparent 30rem),
+        var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+    a { color: var(--accent); text-underline-offset: .18em; }
+    a:hover { text-decoration-thickness: 2px; }
+    :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 8px;
+      left: 8px;
+      z-index: 100;
+      padding: .65rem 1rem;
+      background: var(--ink);
+      color: var(--surface);
+      border-radius: 8px;
+      transform: translateY(-150%);
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      backdrop-filter: blur(15px);
+    }
+    .topbar-inner {
+      max-width: var(--content);
+      min-height: 68px;
+      margin: auto;
+      padding: .7rem 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 850;
+      letter-spacing: -.02em;
+    }
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 2px solid var(--ink);
+      border-radius: 11px 11px 11px 3px;
+      background: var(--gold);
+      color: #17211d;
+      font-weight: 950;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+    .toolbar { display: flex; gap: .55rem; }
+    .icon-button, .button {
+      min-height: 42px;
+      padding: .55rem .85rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      cursor: pointer;
+      font-weight: 750;
+    }
+    .icon-button:hover, .button:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .button.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+    [data-theme="dark"] .button.primary { color: #09231c; }
+
+    .page {
+      max-width: var(--content);
+      margin: auto;
+      padding: 0 1.2rem 5rem;
+      display: grid;
+      grid-template-columns: 235px minmax(0, 1fr);
+      gap: 3rem;
+    }
+    .sidebar {
+      position: sticky;
+      top: 92px;
+      align-self: start;
+      max-height: calc(100vh - 112px);
+      overflow: auto;
+      padding: 1rem 0;
+    }
+    .sidebar strong {
+      display: block;
+      margin-bottom: .55rem;
+      color: var(--muted);
+      font-size: .75rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .sidebar a {
+      display: block;
+      margin: .15rem 0;
+      padding: .45rem .65rem;
+      border-left: 3px solid transparent;
+      border-radius: 0 8px 8px 0;
+      color: var(--muted);
+      font-size: .9rem;
+      text-decoration: none;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      border-left-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
+
+    main { min-width: 0; }
+    .hero {
+      padding: clamp(4rem, 9vw, 7.5rem) 0 3.2rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      margin: 0 0 1rem;
+      padding: .3rem .65rem;
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      color: var(--accent);
+      font-size: .77rem;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { line-height: 1.12; letter-spacing: -.035em; }
+    h1 {
+      max-width: 850px;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(3rem, 7vw, 6.4rem);
+      font-weight: 800;
+    }
+    h1 span { color: var(--accent); }
+    .lede {
+      max-width: 760px;
+      margin: 1.4rem 0 1.8rem;
+      color: var(--muted);
+      font-size: clamp(1.08rem, 2.2vw, 1.35rem);
+    }
+    .hero-actions, .chips { display: flex; flex-wrap: wrap; gap: .65rem; }
+    .chip {
+      padding: .4rem .7rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 750;
+    }
+    .hero-note {
+      margin-top: 2.2rem;
+      padding: 1.2rem 1.35rem;
+      border-left: 5px solid var(--gold);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.1rem;
+    }
+
+    .context-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(0, 1.4fr);
+      gap: 1rem;
+    }
+    .skill-profile {
+      padding: 1.5rem;
+      border-top: 6px solid var(--accent);
+    }
+    .skill-profile .profile-label {
+      display: inline-block;
+      margin-bottom: 1rem;
+      color: var(--accent);
+      font-size: .76rem;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .skill-profile p { color: var(--muted); }
+    .skill-profile ul { margin: 1rem 0 0; padding-left: 1.2rem; }
+    .story-path {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .story-step {
+      position: relative;
+      padding: 1.25rem 1.25rem 1.25rem 3.7rem;
+    }
+    .story-step .story-number {
+      position: absolute;
+      top: 1.2rem;
+      left: 1.15rem;
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--gold);
+      color: #17211d;
+      font-weight: 950;
+    }
+    .story-step p { margin: 0; color: var(--muted); font-size: .94rem; }
+    .outcome-note {
+      grid-column: 1 / -1;
+      padding: 1.25rem 1.4rem;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--accent-soft);
+    }
+    .outcome-note p { margin: .45rem 0 0; }
+
+    section { padding: 4rem 0 1rem; scroll-margin-top: 90px; }
+    .section-head {
+      display: grid;
+      grid-template-columns: 1fr minmax(240px, 420px);
+      align-items: end;
+      gap: 2rem;
+      margin-bottom: 1.7rem;
+    }
+    .kicker { color: var(--accent-2); font-size: .8rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    h2 { margin: .2rem 0 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 4vw, 3.2rem); }
+    h3 { margin: 0 0 .65rem; font-size: 1.22rem; }
+    .section-head p { margin: 0; color: var(--muted); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 10px 30px rgba(31, 43, 38, .06);
+    }
+    .principles {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .principle { padding: 1.25rem; }
+    .principle .number {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      margin-bottom: 1rem;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .principle p { margin: 0; color: var(--muted); font-size: .94rem; }
+
+    .architecture {
+      padding: clamp(1rem, 3vw, 2rem);
+      overflow: hidden;
+    }
+    .role-map {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(130px, 1fr));
+      align-items: stretch;
+      gap: 1.2rem;
+    }
+    .role {
+      position: relative;
+      min-height: 155px;
+      padding: 1.15rem;
+      border: 2px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface-2);
+      cursor: pointer;
+      text-align: left;
+    }
+    .role:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -1.05rem;
+      z-index: 2;
+      width: .9rem;
+      color: var(--accent);
+      font-size: 1.5rem;
+      font-weight: 900;
+      transform: translateY(-50%);
+    }
+    .role:hover, .role[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+    .role .icon { display: block; margin-bottom: .5rem; font-size: 1.7rem; }
+    .role b { display: block; line-height: 1.2; }
+    .role small { display: block; margin-top: .5rem; color: var(--muted); line-height: 1.35; }
+    .role-detail {
+      margin-top: 1.2rem;
+      padding: 1.1rem 1.25rem;
+      border-left: 4px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      background: var(--accent-soft);
+    }
+    .role-detail p { margin: .25rem 0 0; }
+
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
+    .tab {
+      padding: .65rem .9rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      cursor: pointer;
+      font-weight: 800;
+    }
+    .tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+    [data-theme="dark"] .tab[aria-selected="true"] { color: #09231c; }
+    .tab-panel { padding: 1.4rem; }
+    .tab-panel[hidden] { display: none; }
+    .evidence-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem 1.5rem; }
+    .evidence-item { display: flex; gap: .75rem; }
+    .evidence-item span:first-child { color: var(--accent); font-weight: 950; }
+
+    .observer-callout {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 1rem;
+      padding: 1.6rem;
+      border: 2px solid var(--accent);
+      background: linear-gradient(135deg, var(--surface), var(--accent-soft));
+    }
+    .observer-callout ol { margin: .5rem 0 0; padding-left: 1.2rem; }
+    .proof {
+      display: grid;
+      place-items: center;
+      min-height: 210px;
+      padding: 1rem;
+      border-radius: 13px;
+      background: var(--ink);
+      color: var(--surface);
+      text-align: center;
+    }
+    .proof strong { display: block; color: var(--gold); font-family: Georgia, serif; font-size: 2.4rem; }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: .7rem;
+      margin: 2rem 0 1rem;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      top: 24px;
+      right: 8%;
+      left: 8%;
+      height: 3px;
+      background: var(--line);
+    }
+    .time-step {
+      position: relative;
+      z-index: 1;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      text-align: center;
+    }
+    .time-step span {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto .65rem;
+      place-items: center;
+      border: 3px solid var(--line);
+      border-radius: 50%;
+      background: var(--surface);
+      font-weight: 900;
+    }
+    .time-step.active span, .time-step:hover span { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .time-step b { display: block; font-size: .8rem; line-height: 1.25; }
+    .timeline-detail { min-height: 105px; padding: 1.1rem 1.25rem; }
+    .timeline-detail p { margin: .25rem 0 0; color: var(--muted); }
+
+    .runbook { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; }
+    details {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+    summary {
+      padding: .9rem 1rem;
+      cursor: pointer;
+      font-weight: 850;
+    }
+    details p, details ul { margin: 0; padding: 0 1rem 1rem; color: var(--muted); }
+
+    .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .report { padding: 1.35rem; }
+    .report .label { color: var(--accent-2); font-size: .78rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    .report ul { padding-left: 1.15rem; }
+    .report.outcome { grid-column: 1 / -1; border-color: var(--gold); background: color-mix(in srgb, var(--gold) 13%, var(--surface)); }
+
+    .failure-tools {
+      display: flex;
+      gap: .7rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .filter {
+      width: 100%;
+      padding: .72rem .85rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--ink);
+    }
+    .failures { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; }
+    .failure { padding: 1rem; }
+    .failure p { margin: .35rem 0 0; color: var(--muted); font-size: .92rem; }
+    .failure.hidden { display: none; }
+
+    .checklist-wrap { padding: 1.4rem; }
+    .progress-track { height: 12px; overflow: hidden; border-radius: 999px; background: var(--surface-2); }
+    .progress-bar { width: 0; height: 100%; background: var(--accent); transition: width .25s ease; }
+    .progress-text { margin: .55rem 0 1.2rem; color: var(--muted); font-size: .9rem; }
+    .check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .45rem 1rem; }
+    .check {
+      display: flex;
+      align-items: start;
+      gap: .65rem;
+      padding: .55rem;
+      border-radius: 8px;
+    }
+    .check:hover { background: var(--surface-2); }
+    .check input { width: 1.15rem; height: 1.15rem; margin-top: .25rem; accent-color: var(--accent); }
+
+    .prompt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .prompt { position: relative; padding: 1.2rem; }
+    .prompt pre {
+      overflow: auto;
+      margin: .7rem 0 0;
+      padding: 1rem;
+      border-radius: 10px;
+      background: #101815;
+      color: #edf9f4;
+      font: .82rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre-wrap;
+    }
+    .copy { position: absolute; top: 1rem; right: 1rem; }
+
+    footer {
+      margin-top: 4rem;
+      padding: 2rem 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .source-links { display: flex; flex-wrap: wrap; gap: 1rem; }
+
+    @media (max-width: 920px) {
+      .page { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .section-head { grid-template-columns: 1fr; gap: .7rem; }
+      .context-grid { grid-template-columns: 1fr; }
+      .principles { grid-template-columns: 1fr 1fr; }
+      .role-map { grid-template-columns: 1fr 1fr; }
+      .role:nth-child(2)::after { display: none; }
+      .observer-callout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      body { font-size: 16px; }
+      .topbar-inner { padding-inline: .8rem; }
+      .brand span:last-child { display: none; }
+      .page { padding-inline: .85rem; }
+      .story-path, .principles, .role-map, .report-grid, .failures, .check-grid, .prompt-grid, .runbook { grid-template-columns: 1fr; }
+      .role::after { display: none; }
+      .evidence-list { grid-template-columns: 1fr; }
+      .timeline { grid-template-columns: 1fr; }
+      .timeline::before { top: 0; bottom: 0; left: 23px; width: 3px; height: auto; }
+      .time-step { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: .8rem; text-align: left; }
+      .time-step span { margin: 0; }
+      .report.outcome { grid-column: auto; }
+    }
+    @media print {
+      .topbar, .sidebar, .hero-actions, .tabs, .copy, .failure-tools, #reset-checklist { display: none !important; }
+      .page { display: block; max-width: none; }
+      body { background: #fff; color: #111; font-size: 11pt; }
+      .card, details { break-inside: avoid; box-shadow: none; }
+      .tab-panel[hidden] { display: block; }
+      section { padding-top: 1.2rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#top" aria-label="Back to top">
+        <span class="brand-mark">A²</span>
+        <span>Multi-Agent Testing Field Guide</span>
+      </a>
+      <div class="toolbar">
+        <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch color theme">◐ Theme</button>
+        <button class="icon-button" type="button" onclick="window.print()">⌑ Print</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="page" id="top">
+    <nav class="sidebar" aria-label="Page sections">
+      <strong>Field guide</strong>
+      <a href="#context">Case study</a>
+      <a href="#principles">Principles</a>
+      <a href="#system">Agent system</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#observer">Live observer</a>
+      <a href="#sequence">Test sequence</a>
+      <a href="#reports">Report lessons</a>
+      <a href="#failures">Failure modes</a>
+      <a href="#checklist">Checklist</a>
+      <a href="#prompts">Prompts</a>
+      <a href="#sources">Sources</a>
+    </nav>
+
+    <main id="main">
+      <header class="hero">
+        <p class="eyebrow">Evidence-first practice • v1.0</p>
+        <h1>Test the <span>behavior</span>, not the answer key.</h1>
+        <p class="lede">A practical system for determining whether a skill reliably guides a fresh agent—using a conductor, a clean child agent, and an independent reviewer watching the run live.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#sequence">Start with the runbook</a>
+          <a class="button" href="#system">See the agent system</a>
+        </div>
+        <div class="chips" style="margin-top:1rem">
+          <span class="chip">Fresh-context testing</span>
+          <span class="chip">Parallel observation</span>
+          <span class="chip">Gate snapshots</span>
+          <span class="chip">Source protection</span>
+        </div>
+        <div class="hero-note"><strong>The governing idea:</strong> reports are interpretations; transcripts, artifacts, trees, timestamps, and hashes are evidence.</div>
+      </header>
+
+      <section id="context">
+        <div class="section-head">
+          <div><span class="kicker">00 — Why this exists</span><h2>A real skill test became a reusable practice</h2></div>
+          <p>This guide grew from testing <em>Agentic Project Kickoff</em>. The goal was not a theatrical agent demo; it was to learn whether the skill could guide a genuinely fresh agent while keeping a human project owner in control.</p>
+        </div>
+        <div class="context-grid">
+          <article class="skill-profile card">
+            <span class="profile-label">The skill under test</span>
+            <h3>Agentic Project Kickoff</h3>
+            <p>A reusable facilitation workflow for beginning software, app, automation, AI-workflow, and agentic-coding projects thoughtfully.</p>
+            <ul>
+              <li>Runs adaptive project discovery.</li>
+              <li>Creates project-specific planning and workspace documents from templates.</li>
+              <li>Preserves decisions, assumptions, and open questions.</li>
+              <li>Builds understanding across phases without rushing into implementation.</li>
+            </ul>
+          </article>
+          <div class="story-path" aria-label="From project question to practical improvements">
+            <article class="story-step card"><span class="story-number">1</span><h3>Why sub-agents?</h3><p>An agent that already knows the expected behavior can unconsciously reproduce the answer key. A clean child agent showed whether the skill itself—not prior context—caused the right behavior.</p></article>
+            <article class="story-step card"><span class="story-number">2</span><h3>How we ran it</h3><p>Agent 1 acted as the project owner and conductor for a children’s physics website. It supplied simple answers under an at-most-five-question test control while a fresh child used the skill.</p></article>
+            <article class="story-step card"><span class="story-number">3</span><h3>How we checked it</h3><p>Agent 1 reported the behavioral run. Agent 2 independently reviewed the skill and evidence, revealing what the final artifacts proved—and what they could not prove about timing.</p></article>
+            <article class="story-step card"><span class="story-number">4</span><h3>What changed</h3><p>The skill gained narrower approval semantics and the heading “Current Discovery Summary.” The test method gained a live parallel observer, gate snapshots, timestamps, and source hashes.</p></article>
+            <aside class="outcome-note">
+              <strong>Why it matters</strong>
+              <p>We turned one pass-with-caveats into two kinds of improvement: a clearer skill for human users and a more trustworthy way to test skills. We rejected a proposed phase-by-phase validation ritual because test rigor should strengthen the evaluation—not add paperwork to normal human use.</p>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section id="principles">
+        <div class="section-head">
+          <div><span class="kicker">01 — Foundation</span><h2>Six rules that keep a test honest</h2></div>
+          <p>The test should reveal whether the skill generalizes in a fresh context, not whether another agent can reconstruct an expected result from leaked instructions.</p>
+        </div>
+        <div class="principles">
+          <article class="principle card"><span class="number">1</span><h3>Separate roles</h3><p>The project owner and the system under test must be different agents.</p></article>
+          <article class="principle card"><span class="number">2</span><h3>Protect context</h3><p>Give the child only the skill, a natural request, a disposable path, and safety bounds.</p></article>
+          <article class="principle card"><span class="number">3</span><h3>Observe before judging</h3><p>Let behavior emerge before showing the child checklists, defects, or conclusions.</p></article>
+          <article class="principle card"><span class="number">4</span><h3>Split evidence types</h3><p>Structure and hashes are deterministic; activation and gate discipline are behavioral.</p></article>
+          <article class="principle card"><span class="number">5</span><h3>Preserve raw proof</h3><p>Keep the transcript, gate trees, timestamps, artifacts, and source comparisons.</p></article>
+          <article class="principle card"><span class="number">6</span><h3>Label test controls</h3><p>A five-question cap can bound a test without becoming a requirement of the skill.</p></article>
+        </div>
+      </section>
+
+      <section id="system">
+        <div class="section-head">
+          <div><span class="kicker">02 — Architecture</span><h2>One test, four active roles</h2></div>
+          <p>Select a role to see its mandate. Agent 2 runs in parallel so staged timing becomes independently observed evidence.</p>
+        </div>
+        <div class="architecture card">
+          <div class="role-map" aria-label="Interactive role map">
+            <button class="role" type="button" data-role="orchestrator" aria-pressed="true"><span class="icon">◎</span><b>Primary orchestrator</b><small>Scope, safety, baselines, completion</small></button>
+            <button class="role" type="button" data-role="conductor" aria-pressed="false"><span class="icon">♙</span><b>Agent 1 · Conductor</b><small>Project owner and behavioral recorder</small></button>
+            <button class="role" type="button" data-role="child" aria-pressed="false"><span class="icon">◇</span><b>Fresh child · SUT</b><small>Uses the skill with clean context</small></button>
+            <button class="role" type="button" data-role="reviewer" aria-pressed="false"><span class="icon">◉</span><b>Agent 2 · Observer</b><small>Watches gates and verifies evidence</small></button>
+          </div>
+          <div class="role-detail" id="role-detail" aria-live="polite">
+            <strong>Primary orchestrator</strong>
+            <p>Defines the contract, records source hashes, starts the live reviewer, verifies both reports, and cleans up the disposable project.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="evidence">
+        <div class="section-head">
+          <div><span class="kicker">03 — Evidence</span><h2>Two kinds of proof</h2></div>
+          <p>Neither category can replace the other. A valid package can still guide an agent poorly; a good-looking run can still hide broken metadata.</p>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Evidence type">
+          <button class="tab" role="tab" aria-selected="true" aria-controls="deterministic" id="tab-deterministic">Deterministic checks</button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="behavioral" id="tab-behavioral">Behavioral evidence</button>
+        </div>
+        <div class="card tab-panel" id="deterministic" role="tabpanel" aria-labelledby="tab-deterministic">
+          <div class="evidence-list">
+            <div class="evidence-item"><span>✓</span><span>File and directory presence</span></div>
+            <div class="evidence-item"><span>✓</span><span>Permissions and executable state</span></div>
+            <div class="evidence-item"><span>✓</span><span>YAML and frontmatter parsing</span></div>
+            <div class="evidence-item"><span>✓</span><span>Stale and missing references</span></div>
+            <div class="evidence-item"><span>✓</span><span>Source hashes before and after</span></div>
+            <div class="evidence-item"><span>✓</span><span>Exact template comparisons</span></div>
+          </div>
+        </div>
+        <div class="card tab-panel" id="behavioral" role="tabpanel" aria-labelledby="tab-behavioral" hidden>
+          <div class="evidence-list">
+            <div class="evidence-item"><span>●</span><span>Correct activation in fresh context</span></div>
+            <div class="evidence-item"><span>●</span><span>Useful, adaptive discovery</span></div>
+            <div class="evidence-item"><span>●</span><span>Stopping at human-review gates</span></div>
+            <div class="evidence-item"><span>●</span><span>Avoiding premature or prohibited work</span></div>
+            <div class="evidence-item"><span>●</span><span>Preserving uncertainty honestly</span></div>
+            <div class="evidence-item"><span>●</span><span>Producing coherent decisions and summaries</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="observer">
+        <div class="section-head">
+          <div><span class="kicker">04 — Key improvement</span><h2>The reviewer watches live</h2></div>
+          <p>A post-test reviewer can inspect the destination. Only a live observer can independently verify when files appeared.</p>
+        </div>
+        <div class="observer-callout card">
+          <div>
+            <h3>Neutral gate channel</h3>
+            <ol>
+              <li>Agent 1 sends the exact child response and announces the gate.</li>
+              <li>Agent 2 inspects the filesystem before approval.</li>
+              <li>Agent 2 records the initial tree, hashes, and timestamp.</li>
+              <li>Agent 1 sends the exact narrow approval.</li>
+              <li>Agent 2 records when expansion first becomes visible.</li>
+            </ol>
+            <p><strong>Important:</strong> the observer sees events and evidence; the child never sees the answer key.</p>
+          </div>
+          <div class="proof"><div><strong>Timing</strong>becomes evidence,<br>not narrative.</div></div>
+        </div>
+        <div class="timeline" aria-label="Interactive evidence timeline">
+          <button class="time-step active" data-step="0" type="button"><span>1</span><b>Baseline</b></button>
+          <button class="time-step" data-step="1" type="button"><span>2</span><b>Discovery</b></button>
+          <button class="time-step" data-step="2" type="button"><span>3</span><b>Initial gate</b></button>
+          <button class="time-step" data-step="3" type="button"><span>4</span><b>Narrow approval</b></button>
+          <button class="time-step" data-step="4" type="button"><span>5</span><b>Expansion</b></button>
+        </div>
+        <div class="timeline-detail card" id="timeline-detail" aria-live="polite"><strong>Baseline</strong><p>Agent 2 records the source hash manifest and empty or known disposable-project state before the child begins.</p></div>
+      </section>
+
+      <section id="sequence">
+        <div class="section-head">
+          <div><span class="kicker">05 — Runbook</span><h2>Thirteen controlled moves</h2></div>
+          <p>Expand any step for the operating rule. The sequence keeps context clean while preserving enough evidence for a real audit.</p>
+        </div>
+        <div class="runbook">
+          <details open><summary>1. Define the contract</summary><p>Set scope, prohibitions, paths, models, question cap, reports, and cleanup policy.</p></details>
+          <details><summary>2. Run deterministic prechecks</summary><p>Inspect structure, syntax, references, permissions, and pre-test hashes.</p></details>
+          <details><summary>3. Launch Agent 1</summary><p>Make it the conductor and project owner—not the system under test.</p></details>
+          <details><summary>4. Launch Agent 2</summary><p>Start the live observer before the child; record baselines and wait for gate events.</p></details>
+          <details><summary>5. Launch the child</summary><p>Provide only the skill, disposable path, natural request, and safety boundaries.</p></details>
+          <details><summary>6. Conduct discovery</summary><p>Agent 1 answers naturally from an answer bank and labels any question cap as a test control.</p></details>
+          <details><summary>7. Capture the first gate</summary><p>Both agents record the tree; Agent 2 hashes initial artifacts before continuation.</p></details>
+          <details><summary>8. Approve narrowly</summary><p>Authorize only the next stage. Expansion approval does not approve every proposed decision.</p></details>
+          <details><summary>9. Capture completion</summary><p>Agent 2 records first expansion, final tree, hashes, and prohibited-output checks.</p></details>
+          <details><summary>10. Agent 1 reports</summary><p>The conductor compares observed behavior with the skill and labels inference versus proof.</p></details>
+          <details><summary>11. Agent 2 finalizes</summary><p>The observer checks Agent 1’s report against its live log and raw artifacts.</p></details>
+          <details><summary>12. Primary audit</summary><p>The orchestrator resolves disagreements, checks source integrity, and assigns statuses.</p></details>
+          <details><summary>13. Clean up</summary><p>Remove only the disposable project after evidence and reports are retained.</p></details>
+        </div>
+      </section>
+
+      <section id="reports">
+        <div class="section-head">
+          <div><span class="kicker">06 — Case study</span><h2>What two agents taught us</h2></div>
+          <p>The first report demonstrated strong staged behavior. The second showed why independent evidence and precise scoring still matter.</p>
+        </div>
+        <div class="report-grid">
+          <article class="report card">
+            <span class="label">Agent 1 · Behavioral test</span>
+            <h3>Pass, with minor caveats</h3>
+            <ul>
+              <li>Fresh child followed staged kickoff.</li>
+              <li>Discovery stopped after two useful questions.</li>
+              <li>Only the initial artifact set existed before approval.</li>
+              <li>Expansion remained planning-only.</li>
+              <li>No project README or local playbook appeared.</li>
+            </ul>
+          </article>
+          <article class="report card">
+            <span class="label">Agent 2 · Independent review</span>
+            <h3>Conditional pass</h3>
+            <ul>
+              <li>Final workspace was structurally strong.</li>
+              <li>A final snapshot could not prove earlier timing.</li>
+              <li>The five-question cap was a test rule, not a skill rule.</li>
+              <li>A broad approval created decision-status ambiguity.</li>
+              <li>Hash evidence should replace Git when Git is unavailable.</li>
+            </ul>
+          </article>
+          <article class="report outcome card">
+            <span class="label">Resulting improvements</span>
+            <h3>Keep the adaptive skill. Strengthen the test.</h3>
+            <p>The skill gained clearer approval granularity and a more accurate “Current Discovery Summary.” The testing method gained a live Agent 2 observer, immutable gate evidence, source manifests, and explicit separation between test controls and skill requirements.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="failures">
+        <div class="section-head">
+          <div><span class="kicker">07 — Anti-patterns</span><h2>Failure modes worth catching</h2></div>
+          <p>Search the list by symptom, role, or evidence type.</p>
+        </div>
+        <div class="failure-tools"><label for="failure-filter" class="visually-hidden">Filter failure modes</label><input class="filter" id="failure-filter" type="search" placeholder="Filter: context, timing, Git, approval…"></div>
+        <div class="failures" id="failure-list">
+          <article class="failure card"><h3>Conductor becomes the SUT</h3><p>Fix: Agent 1 launches a separate fresh child.</p></article>
+          <article class="failure card"><h3>Answer key leaks into context</h3><p>Fix: initially share only the skill and natural request.</p></article>
+          <article class="failure card"><h3>Final tree “proves” timing</h3><p>Fix: Agent 2 captures each gate live before approval.</p></article>
+          <article class="failure card"><h3>Reports replace evidence</h3><p>Fix: retain transcripts, manifests, timestamps, and hashes.</p></article>
+          <article class="failure card"><h3>Test cap becomes a skill rule</h3><p>Fix: derive scoring criteria from the skill itself.</p></article>
+          <article class="failure card"><h3>Approval grows in scope</h3><p>Fix: authorize the next stage narrowly; keep decisions proposed.</p></article>
+          <article class="failure card"><h3>No Git repository</h3><p>Fix: use before-and-after source hash manifests.</p></article>
+          <article class="failure card"><h3>Agent stalls before execution</h3><p>Fix: check live state and files, bound no-progress time, then restart or report infrastructure failure.</p></article>
+          <article class="failure card"><h3>Testing burdens normal users</h3><p>Fix: keep audit rigor in the test harness, not everyday skill use.</p></article>
+          <article class="failure card"><h3>Reviewer arrives too late</h3><p>Fix: launch Agent 2 before the child and maintain a neutral event channel.</p></article>
+        </div>
+      </section>
+
+      <section id="checklist">
+        <div class="section-head">
+          <div><span class="kicker">08 — Ready to run</span><h2>Portable test checklist</h2></div>
+          <p>Your progress is stored only in this browser. Use it as an operator aid—not as evidence that a check truly passed.</p>
+        </div>
+        <div class="checklist-wrap card">
+          <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar"></div></div>
+          <p class="progress-text" id="progress-text" aria-live="polite">0 of 16 complete</p>
+          <div class="check-grid" id="check-grid">
+            <label class="check"><input type="checkbox" data-check="contract"><span>Test contract defined</span></label>
+            <label class="check"><input type="checkbox" data-check="models"><span>Models and reasoning recorded</span></label>
+            <label class="check"><input type="checkbox" data-check="workspace"><span>Disposable workspace created</span></label>
+            <label class="check"><input type="checkbox" data-check="sourcehash"><span>Source baseline hashed</span></label>
+            <label class="check"><input type="checkbox" data-check="agent1"><span>Agent 1 launched as conductor</span></label>
+            <label class="check"><input type="checkbox" data-check="agent2"><span>Agent 2 launched before child</span></label>
+            <label class="check"><input type="checkbox" data-check="child"><span>Fresh child received no answer key</span></label>
+            <label class="check"><input type="checkbox" data-check="discovery"><span>Discovery transcript captured</span></label>
+            <label class="check"><input type="checkbox" data-check="gate"><span>Initial gate independently captured</span></label>
+            <label class="check"><input type="checkbox" data-check="approval"><span>Narrow approval recorded</span></label>
+            <label class="check"><input type="checkbox" data-check="expansion"><span>First expansion timestamp recorded</span></label>
+            <label class="check"><input type="checkbox" data-check="final"><span>Final tree and hashes captured</span></label>
+            <label class="check"><input type="checkbox" data-check="report1"><span>Agent 1 report completed</span></label>
+            <label class="check"><input type="checkbox" data-check="report2"><span>Agent 2 review completed</span></label>
+            <label class="check"><input type="checkbox" data-check="integrity"><span>Source integrity compared</span></label>
+            <label class="check"><input type="checkbox" data-check="cleanup"><span>Cleanup confirmed</span></label>
+          </div>
+          <button class="button" id="reset-checklist" type="button" style="margin-top:1rem">Reset checklist</button>
+        </div>
+      </section>
+
+      <section id="prompts">
+        <div class="section-head">
+          <div><span class="kicker">09 — Reuse</span><h2>Prompt scaffolds</h2></div>
+          <p>These outlines establish roles and evidence boundaries without feeding expected behavior to the child.</p>
+        </div>
+        <div class="prompt-grid">
+          <article class="prompt card">
+            <h3>Agent 1 · Conductor</h3>
+            <button class="button copy" type="button" data-copy="prompt-one">Copy</button>
+            <pre id="prompt-one">Act as the independent test conductor and simulated project owner.
+
+Skill: [PATH]
+Disposable project: [PATH]
+Report: [PATH]
+
+Spawn a fresh child using [MODEL / REASONING]. Give it only the skill, project path, and natural user request.
+
+Answer one question at a time from the answer bank. Enforce [CAP] only as a test constraint. Notify the live reviewer at every response and gate. Do not continue until its snapshot is complete.</pre>
+          </article>
+          <article class="prompt card">
+            <h3>Agent 2 · Live reviewer</h3>
+            <button class="button copy" type="button" data-copy="prompt-two">Copy</button>
+            <pre id="prompt-two">Act as a live independent observer and evidence reviewer.
+
+Read the skill and record source/project baselines before the child starts. Watch through the neutral event channel.
+
+At each gate, record exact messages, tree, hashes, and timestamps before Agent 1 continues. After the run, compare Agent 1's report with your live log and raw artifacts. Separate skill defects from test limitations.</pre>
+          </article>
+        </div>
+      </section>
+
+      <footer id="sources">
+        <strong>Source material</strong>
+        <p>This page condenses the reusable best-practices guide and the findings from the two-agent skill-testing case study.</p>
+        <div class="source-links">
+          <a href="./Multi-Agent-Skill-Testing-Best-Practices.md">Best-practices Markdown</a>
+          <a href="./Agentic-Project-Kickoff-Fresh-Agent-1-Test-Report.md">Agent 1 report</a>
+          <a href="./Agentic-Project-Kickoff-Fresh-Agent-2-Review.md">Agent 2 review</a>
+          <a href="./Agentic-Project-Kickoff-Three-Pass-Handoff.md">Three-pass handoff</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+    const themeButton = document.getElementById('theme-toggle');
+    const savedTheme = localStorage.getItem('field-guide-theme');
+    if (savedTheme) root.dataset.theme = savedTheme;
+    themeButton.addEventListener('click', () => {
+      const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      localStorage.setItem('field-guide-theme', next);
+    });
+
+    const roleCopy = {
+      orchestrator: ['Primary orchestrator', 'Defines the contract, records source hashes, starts the live reviewer, verifies both reports, and cleans up the disposable project.'],
+      conductor: ['Agent 1 · Conductor', 'Simulates the project owner, answers bounded discovery questions, sends live gate events, approves only the next stage, and writes the behavioral report.'],
+      child: ['Fresh child · System under test', 'Receives clean context and follows the skill like a normal agent. It never sees the expected output list or evaluation criteria during the run.'],
+      reviewer: ['Agent 2 · Live observer', 'Begins before the child, captures baseline and gate evidence independently, then checks Agent 1’s report against its live observation log.']
+    };
+    document.querySelectorAll('.role').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.role').forEach(item => item.setAttribute('aria-pressed', 'false'));
+        button.setAttribute('aria-pressed', 'true');
+        const [title, copy] = roleCopy[button.dataset.role];
+        document.getElementById('role-detail').innerHTML = `<strong>${title}</strong><p>${copy}</p>`;
+      });
+    });
+
+    const tabs = document.querySelectorAll('[role="tab"]');
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      tabs.forEach(item => {
+        item.setAttribute('aria-selected', String(item === tab));
+        document.getElementById(item.getAttribute('aria-controls')).hidden = item !== tab;
+      });
+    }));
+
+    const timelineCopy = [
+      ['Baseline', 'Agent 2 records the source hash manifest and empty or known disposable-project state before the child begins.'],
+      ['Discovery', 'Agent 1 sends exact questions and answers through the neutral event channel while the child remains unaware of scoring criteria.'],
+      ['Initial gate', 'Before approval, both agents capture the tree; Agent 2 timestamps and hashes artifacts that later stages may overwrite.'],
+      ['Narrow approval', 'The exact approval authorizes only the next workflow stage—not every proposed decision, deployment, or implementation.'],
+      ['Expansion', 'Agent 2 records when new files first appear, then captures the final tree and hashes before reading Agent 1’s conclusions.']
+    ];
+    document.querySelectorAll('.time-step').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.time-step').forEach(item => item.classList.toggle('active', item === button));
+      const [title, copy] = timelineCopy[Number(button.dataset.step)];
+      document.getElementById('timeline-detail').innerHTML = `<strong>${title}</strong><p>${copy}</p>`;
+    }));
+
+    const filter = document.getElementById('failure-filter');
+    filter.addEventListener('input', () => {
+      const query = filter.value.toLowerCase().trim();
+      document.querySelectorAll('.failure').forEach(card => card.classList.toggle('hidden', !card.textContent.toLowerCase().includes(query)));
+    });
+
+    const checks = [...document.querySelectorAll('[data-check]')];
+    const storageKey = 'multi-agent-field-guide-checks';
+    const storedChecks = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    checks.forEach(check => {
+      check.checked = Boolean(storedChecks[check.dataset.check]);
+      check.addEventListener('change', updateChecklist);
+    });
+    function updateChecklist() {
+      const state = Object.fromEntries(checks.map(check => [check.dataset.check, check.checked]));
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      const complete = checks.filter(check => check.checked).length;
+      document.getElementById('progress-bar').style.width = `${(complete / checks.length) * 100}%`;
+      document.getElementById('progress-text').textContent = `${complete} of ${checks.length} complete`;
+    }
+    document.getElementById('reset-checklist').addEventListener('click', () => {
+      checks.forEach(check => { check.checked = false; });
+      updateChecklist();
+    });
+    updateChecklist();
+
+    document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {
+      const text = document.getElementById(button.dataset.copy).textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        const original = button.textContent;
+        button.textContent = 'Copied';
+        setTimeout(() => { button.textContent = original; }, 1400);
+      } catch {
+        button.textContent = 'Select text';
+      }
+    }));
+
+    const navLinks = [...document.querySelectorAll('.sidebar a')];
+    const sections = navLinks.map(link => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`));
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>
