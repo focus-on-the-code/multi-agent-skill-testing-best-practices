@@ -1,4 +1,4 @@
-Multi-Agent Skill Testing
+README: Multi-Agent Skill Testing
 
 A lightweight method for testing whether an agent skill reliably guides a fresh agent—not whether a reviewer can infer the intended behavior.
 
@@ -25,3 +25,5 @@ Results
 Label each requirement as Passed, Failed, Partially tested, Not testable, or Not applicable.
 
 Preserve raw evidence. A final report or final directory alone is not enough to prove staged behavior.
+
+*Access the full guide here: https://github.com/focus-on-the-code/multi-agent-skill-testing-best-practices*
